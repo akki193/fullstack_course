@@ -8,14 +8,14 @@ const getAll = () => {
     return request.then(response => response.data)
 }
 
-const update = (person) => {
+const update = (id, person) => {
     const request = axios
-        .post(baseUrl, person)
+        .put(`${baseUrl}/${id}`, person)
     return request.then(response => response.data)
 }
 
-const create = (id, person) => {
-    const request = axios.put(`${baseUrl}/${id}`, person)
+const create = (person) => {
+    const request = axios.post(baseUrl, person)
     return request.then(response => response.data)
 }
 

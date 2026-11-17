@@ -5,12 +5,41 @@ import Persons from './components/Persons'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import PersonServices from './services/Persons'
+import Notification from './components/Notification'
 
 const App = () => {
   const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notificationMsg, setNotificationMsg] = useState(null)
+  const [notificationStyle, setNotificationStyle] = useState(null)
+
+  const errorRule = {
+        color: 'red',
+        fontStyle: 'italic',
+        background: 'lightgrey',
+        fontSize: 20,
+        borderStyle: 'solid',
+        padding: 10,
+        marginTop: 15,
+        marginBottom: 10,
+        borderRadius: 6 
+  }
+
+  const notificationRule = {
+        color: 'green',
+        fontStyle: 'italic',
+        background: 'lightgrey',
+        fontSize: 20,
+        borderStyle: 'solid',
+        padding: 10,
+        marginTop: 15,
+        marginBottom: 10,
+        borderRadius: 6 
+  }
+
+
 
   const hook = () => {
     PersonServices.getAll().then(initPersons => {
@@ -18,6 +47,8 @@ const App = () => {
     }
     )
   }
+
+  
   
   useEffect(hook, [])
 
@@ -37,6 +68,11 @@ const App = () => {
     event.preventDefault()
     console.log(event.target)
 
+    const personObject = {
+      name: newName,
+      number: newNumber
+      }
+
     if (persons.some(person => person.name === newName)) {
       // alert(`Person ${newName} is already existing in phonebook`)
 
@@ -45,24 +81,50 @@ const App = () => {
       )
 
       if (verification) {
-        console.log('here')
-        
-        setPersons(persons.map(person => 
-          person.name === newName 
+        const id = persons.find(person => 
+          person.name === newName
+        ).id
+
+        PersonServices
+        .update(id, personObject)
+        .then(
+          setPersons(persons.map(person => 
+            person.name === newName
             ? {...person, number: newNumber}
             : person
-        ))
+          ))
+        )
+        .then(() => {
+          setNotificationStyle(notificationRule)
+          setNotificationMsg(`${newName} phone number changed`)
+          }
+        )
+        .catch(error => {
+          console.log('error catched')
+          
+          setNotificationStyle(errorRule)
+          setNotificationMsg(`Person ${newName} does not exist on server`)
+          setPersons(persons.filter(person => 
+            person.id !== id
+          ))
+        })
+
+        setTimeout(() => {
+          setNotificationMsg(null)
+        }, 5000)
       }
     }
     else {
-      const personObject = {
-        name: newName,
-        number: newNumber
-      }
+      setNotificationMsg(`Added ${newName}`)
+      setNotificationStyle(notificationRule)
+      setTimeout(() => {
+        setNotificationMsg(null)
+      }, 5000)
+
 
 
       PersonServices
-      .update(personObject)
+      .create(personObject)
       .then(person => setPersons(persons.concat(person)))
     }
   }
@@ -77,18 +139,24 @@ const App = () => {
 
     
     if (verification) {
+      console.log(`deleting ${name}`)
+      
       PersonServices
       .deleteEntry(id)
-      .then(() => {
-        setPersons(persons.filter(person => 
-          person.id !== id
-        )
-        )
+      .catch(error => {
+        setNotificationStyle(errorRule)
+        setNotificationMsg(`Information of ${name} has already been removed from server`)
+        setTimeout(() => {
+        setNotificationMsg(null)
+      }, 5000)
       })
-    }
-    console.log("Persons: ", persons)
+
+      setPersons(persons.filter(person => 
+      person.id !== id))
+      
+      console.log("Persons: ", persons)
     
-  }
+  }}
 
 
   
@@ -97,6 +165,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebbok</h2>
+      <Notification message={notificationMsg} msgStyle={notificationStyle}/>
       <Filter onChange={handleFilterChange}/>
       <h2>Add a new</h2>
       <PersonForm 
